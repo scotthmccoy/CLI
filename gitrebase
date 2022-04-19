@@ -47,15 +47,11 @@ function confirm {
 #exit script immediately if any command returns a non-zero exit code (indicating an error)
 set -o errexit
 
-cd ~/Documents/XcodeProjects/Kurogo-iOS
-
 green "Getting current branch..."
 currentBranch=$(git rev-parse --abbrev-ref HEAD)
 
 green "Current branch is $currentBranch, determining ancestor..."
-ancestorA="devel-4.0"
-ancestorB="devel-2.9"
-branchedFrom=$(gitcca $currentBranch $ancestorA $ancestorB);
+branchedFrom=$(gitparent);
 
 green "Branched from $branchedFrom. Switching branches..."
 git checkout $branchedFrom
@@ -67,6 +63,7 @@ git pull
 green "Switching back to $currentBranch..."
 git checkout $currentBranch
 
+#This sleep seems to prevent some kind of race condition in git
 sleep 1
 
 green "Attempting rebase of $currentBranch onto $branchedFrom..."
@@ -85,4 +82,3 @@ confirm
 git push -f origin 
 
 green "Done"
-say "Done"

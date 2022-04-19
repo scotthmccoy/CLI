@@ -1,49 +1,37 @@
-# Scripts
-These scripts should be copied into your user directory and edited to point at the repo you'd like to use them with. Double-click to run.
+# git_scripts
 
-## gitrebase.command
-Rebases the current branch onto the tip of the develop branch it was branched from.
+A collection of scripts I've found helpful for automating daily git chores. 
 
-## branches_to_rebase.command
-Prints a list of branches that are in need of rebasing (the develop branch that they were branched from has had new commits).
+## Installation
 
-## gitprune.command
-Deletes branches that are fully merged with `devel-4.0` or `devel-2.9`. Useful for cleaning up after your PRs have been merged.
-
-## update_branches.command
-Pulls devel-2.9 and devel-4.0
-
-
-# Utilities
-These scripts should be copied into `/usr/local/bin/`. They are useful in their own right but are mostly called by the other scripts.
-
-## gitcca
-
-Determines branch that the current branch was branched from (cca is short for Closest Common Ancestor)
-
-Usage:
-`gitcca featureBranch ancestorA ancestorB`
-
-Example:
+1. Copy the the scripts into `/usr/local/bin/`
+2. Specify develop branches in the repo's `.git/config` file. Example:
 ```
-smccoy@mbp461smccoy Kurogo-iOS % gitcca origin/feature/swiftui-message-center devel-4.0 devel-2.9
-devel-4.0
-smccoy@mbp461smccoy Kurogo-iOS % 
+git config scripts.develop devel-4.0 devel-2.9
 ```
 
-## gitneedsrebase
-
-Determines if a feature branch needs rebasing; if it is out of sync with a develop branch it was branched from. Prints "yes" or "no".
-
-Usage:
-`gitneedsrebase featureBranch rebaseOnto`
-
-Example:
+3. (Optional) Specify branches to ignore. Example:
 ```
-smccoy@mbp461smccoy Kurogo-iOS % gitneedsrebase feature/swiftui-message-center devel-4.0
-yes
-smccoy@mbp461smccoy Kurogo-iOS % 
+git config scripts.protected main release
 ```
 
-# TODO
-I'd like to convert the double-click-to-run scripts into ones that can live in `/usr/local/bin/`. They would have to either infer the names of the develop branches, or perhaps read them out of `.gitconfig`.
+
+## List of Scripts
+
+### gitisrebased
+Prints "yes" if the branch is "rebased"; if its merge-base with its parent (see `gitparent`) is the tip of the parent branch. Otherwise, prints "no".   
+
+### gitisrebasedlist
+Prints a list of branches that are *not* rebased (see `gitisrebased`). Ignores `scripts.develop` and `scripts.protected`.  
+
+### gitparent
+Finds the nearest commit that resides on a branch other than the current branch and prints the name of that branch.
+
+### gitprune
+Deletes local branches that have been merged into the list of branches specified in `scripts.develop`. Will not delete branches specified in `scripts.develop` or `scripts.protected`. Useful for cleaning up after merging PRs.
+
+### gitrebase
+Rebases the current branch onto the tip of its parent branch (See `gitparent`).
+
+### gitupdate
+Pulls the branches specified in `scripts.develop`. 
