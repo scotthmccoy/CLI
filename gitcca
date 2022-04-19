@@ -1,0 +1,25 @@
+#!/bin/zsh
+
+featureBranch=$1
+ancestorA=$2
+ancestorB=$3
+
+if [ -z "$featureBranch" ] || [ -z "$ancestorA" ] || [ -z "$ancestorB" ] ; then
+    echo "Usage:"
+    echo "gitcca featureBranch ancestorA ancestorB"
+    exit 1
+fi
+
+branchpoint=$(git merge-base $featureBranch $ancestorA $ancestorB)
+if $(git merge-base --is-ancestor $branchpoint $ancestorA) ; then
+    echo $ancestorA
+    exit 0
+fi
+
+if $(git merge-base --is-ancestor $branchpoint $ancestorB) ; then
+    echo $ancestorB
+    exit 0
+fi
+
+echo "Common ancestor not found! Feature branch: $featureBranch, Ancestor A: $ancestorA, Ancestor B: $ancestorB"
+exit 2
