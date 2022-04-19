@@ -25,10 +25,10 @@ Prints "yes" if the branch is "rebased"; if its merge-base with its parent (see 
 Prints a list of branches that are *not* rebased (see `gitisrebased`). Ignores branches specified in `scripts.develop` and `scripts.protected`.  
 
 ### gitparent
-Finds the nearest commit that resides on a branch other than the current branch and prints the name of that branch.
+Prints the current branch's "parent branch" by finding the nearest commit to HEAD that resides on a branch other than the current branch and printing the name of that branch.
 
 ### gitprune
-Deletes local branches that have been merged into the list of branches specified in `scripts.develop`. Will not delete branches specified in `scripts.develop` or `scripts.protected`. Useful for cleaning up after merging PRs.
+Deletes local branches that have been fully merged into the list of branches specified in `scripts.develop`. Will not delete branches specified in `scripts.develop` or `scripts.protected`. Useful for cleaning up after merging PRs.
 
 ### gitrebase
 Rebases the current branch onto the tip of its parent branch (See `gitparent`).
