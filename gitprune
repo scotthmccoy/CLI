@@ -22,6 +22,12 @@ function green {
     color "$1" 2
 }
 
+green "Fetching and deleting branches no longer on remote..."
+git fetch -p
+
+green "Updating develop branches..."
+gitupdate
+
 
 develBranches=($(git config scripts.develop))
 protectedBranches=($(git config scripts.protected))
