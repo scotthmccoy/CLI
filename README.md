@@ -21,7 +21,7 @@ git config scripts.protected main release
 ### gitisrebased
 Prints "yes" if the current branch is "rebased"; if its merge-base with its parent (see `gitparent`) is the tip of the parent branch. Otherwise, prints "no".   
 
-### gitisrebasedlist
+### gitisnotrebasedlist
 Prints a list of local branches that are *not* rebased (see `gitisrebased`). Ignores branches specified in `scripts.develop` and `scripts.protected`.  
 
 ### gitparent
