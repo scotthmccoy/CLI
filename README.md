@@ -7,7 +7,7 @@ A collection of scripts I've found helpful for automating daily git chores.
 1. Copy the the scripts into `/usr/local/bin/`
 2. Specify develop branches in the repo's `.git/config` file. Example:
 ```
-git config scripts.develop devel-4.0 devel-2.9
+git config scripts.develop "devel-4.0 devel-2.9"
 ```
 
 3. (Optional) Specify branches to ignore. Example:
