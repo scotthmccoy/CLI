@@ -12,7 +12,7 @@ git config scripts.develop "devel-4.0 devel-2.9"
 
 3. (Optional) Specify branches to ignore. Example:
 ```
-git config scripts.protected main release
+git config scripts.protected "main release"
 ```
 
 
