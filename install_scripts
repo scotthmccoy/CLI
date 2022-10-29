@@ -1,0 +1,1 @@
+sudo cp $(ls | grep -v README | grep -v install) /usr/local/bin/
