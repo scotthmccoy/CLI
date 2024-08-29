@@ -7,24 +7,6 @@ cd "$DIRECTORY"
 # Dump the address book and replace pipes with tabs
 function dump_address_book {
 
-
-
-    #SELECT DISTINCT
-    #    ZABCDRECORD.ZFIRSTNAME [FIRST NAME],
-    #    ZABCDRECORD.ZLASTNAME [LAST NAME],
-    #    ZABCDPHONENUMBER.ZFULLNUMBER [PHONE],
-    #    ZABCDEMAILADDRESS.ZADDRESS [EMAIL]
-    #FROM
-    #    ZABCDRECORD
-    #    LEFT JOIN ZABCDPHONENUMBER ON ZABCDRECORD.Z_PK = ZABCDPHONENUMBER.ZOWNER
-    #    LEFT JOIN ZABCDEMAILADDRESS ON ZABCDRECORD.Z_PK = ZABCDEMAILADDRESS.ZOWNER
-    #ORDER BY
-    #    ZABCDRECORD.ZLASTNAME,
-    #    ZABCDRECORD.ZFIRSTNAME,
-    #    ZABCDEMAILADDRESS.ZORDERINGINDEX,
-    #    ZABCDPHONENUMBER.ZORDERINGINDEX ASC;
-    #EOF
-
     read "groupName?Please enter the name of your list: "
 
     primaryKey=$(sqlite3 $1 "select Z_PK from ZABCDRecord where ZNAME = '$groupName'");
@@ -33,10 +15,7 @@ function dump_address_book {
 
     echo "Address book copied to clipboard. Paste into Google Sheets."
     say "Done"
-
 }
-
-
 
 cd ~/Library/Application\ Support/AddressBook/
 
@@ -48,8 +27,6 @@ dump_address_book $db_path
 
 # Dump whole DB
 # sqlite3 $db_path '.dump' > ~/Desktop/dump.sql
-
-
 
 #sqlite3 $db_path --header "SELECT * FROM Z_22PARENTGROUPS;"
 
