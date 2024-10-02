@@ -29,7 +29,7 @@ mkdir $dirName
 cd $dirName
 
 # Download the ipa
-echo "Downloading app with Bundle ID: $bundleId. This may prompt for an AppleID's credentials/2FA code..."
+echo "Downloading app with Bundle ID: $bundleId. This may prompt for an AppleID's credentials/2FA code, or fail if downloading the app requires accepting Terms and Conditions..."
 
 ipatool purchase -b "$bundleId"
 ipatool download -b "$bundleId" --purchase
