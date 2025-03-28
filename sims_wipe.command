@@ -4,7 +4,7 @@ function color {
     then
         tput setaf $2
         echo "$1"
-        tput setaf 0
+        tput sgr0
         return
     fi
     
