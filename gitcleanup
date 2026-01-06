@@ -1,0 +1,64 @@
+#!/usr/bin/swift
+
+import Foundation
+
+
+@discardableResult
+func shell(_ command: String) throws -> String {
+    let task = Process()
+    let pipe = Pipe()
+    
+    task.standardOutput = pipe
+    task.standardError = pipe
+    task.arguments = ["-c", command]
+    task.executableURL = URL(fileURLWithPath: "/bin/zsh") //<--updated
+    task.standardInput = nil
+
+    try task.run() //<--updated
+    
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8)!
+    
+    return output
+}
+
+func stringPrompt(_ message: String) -> String {
+	print(message + ": ", terminator: "") // The terminator "" keeps the cursor on the same line as the prompt
+	return readLine() ?? ""
+}
+
+func boolPrompt(_ message: String) -> Bool {
+	let response = stringPrompt(message)
+
+	return ["y", "Y"].contains(response)
+}
+
+do {
+
+	let branches = try shell("git branch -vv | grep gone | grep -v \"*\" | awk '{print $1}'")
+		.split(whereSeparator: \.isNewline)
+		.map { String($0) }
+
+	guard branches.count > 0 else {
+		print("No branches to clean up")
+		try shell("say done")
+		exit(0)
+	}
+
+	for branch in branches {
+		if boolPrompt("Delete branch: \(branch)? ") {
+			print("Deleting...")
+			let command = "git -D \(branch)"
+			print("command: \(command)")
+			try shell(command)
+		}
+	}
+
+	print("Done!")
+	try shell("say done")
+
+
+} catch {
+	print("Error: \(error)")
+	exit(1)
+}
