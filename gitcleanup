@@ -48,9 +48,7 @@ do {
 	for branch in branches {
 		if boolPrompt("Delete branch: \(branch)? ") {
 			print("Deleting...")
-			let command = "git branch -D \(branch)"
-			print("command: \(command)")
-			try shell(command)
+			try shell("git branch -D \(branch)")
 		}
 	}
 
