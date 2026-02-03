@@ -3,6 +3,7 @@
 import Foundation
 
 
+// MARK: Utility Funcs
 @discardableResult
 func shell(_ command: String) throws -> String {
     let task = Process()
@@ -33,7 +34,33 @@ func boolPrompt(_ message: String) -> Bool {
 	return ["y", "Y"].contains(response)
 }
 
+// MARK: Script
 do {
+	
+	// Determine current branch:
+	let currentBranch = try shell("git branch").split(separator:"\n").filter {
+		$0.contains("*")
+	}.map {
+		// Remove the "* " prefix on the current branch
+		$0.dropFirst(2)
+	}.first
+
+	guard let currentBranch else {
+		print("Could not determine current branch!")
+		exit(1)
+	}
+
+
+	print("currentBranch: \(currentBranch)
+
+	// Switch to main if neccessary
+	if currentBranch != "main" {
+		print("switching to main")
+		try shell("git checkout main")
+	}
+
+	print("Pruning branches (removes any remote-tracking references that correspond to branches that have been deleted on the remote)...")
+	try shell("git fetch --prune origin")
 
 	let branches = try shell("git branch -vv | grep gone | grep -v \"*\" | awk '{print $1}'")
 		.split(whereSeparator: \.isNewline)
@@ -51,6 +78,12 @@ do {
 			try shell("git branch -D \(branch)")
 		}
 	}
+
+	if currentBranch != "main" {
+		print("switching back to \(currentBranch)")
+		try shell("git checkout \(currentBranch)")
+	}
+
 
 	print("Done!")
 	try shell("say done")
