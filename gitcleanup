@@ -36,7 +36,7 @@ func boolPrompt(_ message: String) -> Bool {
 
 func switchBackTo(branch: String) throws {
 	if branch != "main" {
-		print("switching back to \(branch)")
+		print("Switching back to \(branch)")
 		try shell("git checkout \(branch)")
 	}
 }
@@ -57,12 +57,9 @@ do {
 		exit(1)
 	}
 
-
-	print("currentBranch: \(currentBranch)")
-
 	// Switch to main if neccessary
 	if currentBranch != "main" {
-		print("switching to main")
+		print("currentBranch: \(currentBranch), switching to main")
 		try shell("git checkout main")
 	}
 
