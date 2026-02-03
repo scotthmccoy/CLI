@@ -49,7 +49,7 @@ do {
 		$0.contains("*")
 	}.map {
 		// Remove the "* " prefix on the current branch
-		$0.dropFirst(2)
+		String($0.dropFirst(2))
 	}.first
 
 	guard let currentBranch else {
@@ -77,7 +77,7 @@ do {
 		print("No branches to clean up")
 
 		switchBackTo(branch: currentBranch)
-		
+
 		try shell("say done")
 		exit(0)
 	}
