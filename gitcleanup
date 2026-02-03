@@ -34,6 +34,13 @@ func boolPrompt(_ message: String) -> Bool {
 	return ["y", "Y"].contains(response)
 }
 
+func switchBackTo(branch: String) throws {
+	if branch != "main" {
+		print("switching back to \(branch)")
+		try shell("git checkout \(branch)")
+	}
+}
+
 // MARK: Script
 do {
 	
@@ -68,6 +75,9 @@ do {
 
 	guard branches.count > 0 else {
 		print("No branches to clean up")
+
+		switchBackTo(branch: currentBranch)
+		
 		try shell("say done")
 		exit(0)
 	}
@@ -79,11 +89,8 @@ do {
 		}
 	}
 
-	if currentBranch != "main" {
-		print("switching back to \(currentBranch)")
-		try shell("git checkout \(currentBranch)")
-	}
 
+	switchBackTo(branch: currentBranch)
 
 	print("Done!")
 	try shell("say done")
