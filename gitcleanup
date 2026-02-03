@@ -51,7 +51,7 @@ do {
 	}
 
 
-	print("currentBranch: \(currentBranch)
+	print("currentBranch: \(currentBranch)")
 
 	// Switch to main if neccessary
 	if currentBranch != "main" {
