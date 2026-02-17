@@ -46,10 +46,10 @@ function confirm {
 
 green "Getting previous commit..."
 hashOfPreviousCommit=$(git log -n 1 --skip 1 --pretty=format:"%H")
-previousCommitMessage=$(git log --format=oneline -n 1 $hashOfPreviousCommit)
+previousCommitMessage=$(git log -n 1 --pretty=format:"%B" $hashOfPreviousCommit)
 
 
-green "Previous commit is $previousCommitMessage"
+green "Previous commit message: \n\n$previousCommitMessage\n"
 green "Merge down, using that message?"
 confirm
 
