@@ -1,4 +1,4 @@
-#!/usr/bin/swift
+#!/usr/bin/env swift
 
 // find . | tr \\n \\0 | xargs -0 exiftool > exiftool.txt; gps exiftool.txt "34.24407600461895,-118.46280629069021"; say "DONE"
 
