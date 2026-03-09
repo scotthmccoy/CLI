@@ -25,6 +25,13 @@ function green {
     color "$1" 2
 }
 
+#Safe say function that checks if command exists
+function safe_say {
+    if command -v say &> /dev/null; then
+        say "$1"
+    fi
+}
+
 
 #Prompt to continue
 function confirm {
@@ -69,6 +76,6 @@ green "Copying all crash logs..."
 find logs/*Test -name "*.ips" -exec cp "{}" ./logs/uitest_and_app_logs \;
 
 green "Done. Results in $outputDir"
-say "Done"
+safe_say "Done"
 
 open $outputDir

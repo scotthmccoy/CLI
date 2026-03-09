@@ -1,5 +1,12 @@
 #!/bin/zsh
 
+#Safe say function that checks if command exists
+function safe_say {
+    if command -v say &> /dev/null; then
+        say "$1"
+    fi
+}
+
 #cd to the directory this file is in
 DIRECTORY=$(dirname "$0")
 cd "$DIRECTORY"
@@ -14,7 +21,7 @@ function dump_address_book {
     sqlite3 $1 --header "SELECT DISTINCT ZABCDRecord.ZFIRSTNAME [FIRSTNAME], ZABCDRECORD.ZLASTNAME [LASTNAME], ZABCDPHONENUMBER.ZFULLNUMBER [PHONE], ZABCDEMAILADDRESS.ZADDRESS [EMAIL] FROM ZABCDRECORD LEFT JOIN ZABCDPHONENUMBER ON ZABCDRECORD.Z_PK = ZABCDPHONENUMBER.ZOWNER LEFT JOIN ZABCDEMAILADDRESS ON ZABCDRECORD.Z_PK = ZABCDEMAILADDRESS.ZOWNER LEFT JOIN Z_22PARENTGROUPS ON ZABCDRECORD.Z_PK = Z_22PARENTGROUPS.Z_22CONTACTS WHERE FIRSTNAME IS NOT NULL AND Z_22PARENTGROUPS.Z_19PARENTGROUPS1 = $primaryKey ORDER BY ZABCDRECORD.ZFIRSTNAME, ZABCDRECORD.ZLASTNAME ASC;" | tr '|' '\t' | tr '+' ' ' | pbcopy
 
     echo "Address book copied to clipboard. Paste into Google Sheets."
-    say "Done"
+    safe_say "Done"
 }
 
 cd ~/Library/Application\ Support/AddressBook/

@@ -26,6 +26,13 @@ function green {
     color "$1" 2
 }
 
+#Safe say function that checks if command exists
+function safe_say {
+    if command -v say &> /dev/null; then
+        say "$1"
+    fi
+}
+
 
 #Prompt to continue
 function confirm {
@@ -37,7 +44,7 @@ function confirm {
     if [[ $variable != "y" && $variable != "Y" ]]
     then
         red "Exiting"
-        say "Done"
+        safe_say "Done"
         exit 0
     fi
     green "Continuing"
@@ -70,7 +77,7 @@ git add -A && git commit -m "$originalCommitMessage"
 
 green "Force-push to origin?"
 confirm
-git push -f origin 
+git push -f origin
 
 green "Done"
-say "Done"
+safe_say "Done"

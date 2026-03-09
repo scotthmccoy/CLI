@@ -1,5 +1,12 @@
 #!/bin/zsh
 
+#Safe say function that checks if command exists
+function safe_say {
+    if command -v say &> /dev/null; then
+        say "$1"
+    fi
+}
+
 #Bail if any command fails
 trap 'exit 1' ERR
 
@@ -50,4 +57,4 @@ plistPath=$(find . | grep app/Info.plist)
 # Fetch the URLScheme
 urlScheme=$(/usr/libexec/PlistBuddy -c "print :CFBundleURLTypes:0:CFBundleURLSchemes:0" $plistPath)
 echo "URL Scheme: $urlScheme"
-say "Done"
+safe_say "Done"

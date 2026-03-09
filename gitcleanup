@@ -75,7 +75,7 @@ do {
 
 		try switchBackTo(branch: currentBranch)
 
-		try shell("say done")
+		try shell("command -v say &> /dev/null && say done")
 		exit(0)
 	}
 
@@ -90,7 +90,7 @@ do {
 	try switchBackTo(branch: currentBranch)
 
 	print("Done!")
-	try shell("say done")
+	try shell("command -v say &> /dev/null && say done")
 
 
 } catch {
