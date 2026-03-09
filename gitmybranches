@@ -1,0 +1,5 @@
+git fetch --all >/dev/null 2>&1
+me=$(whoami)
+
+#Get all local and remote branches
+git branch -a | grep $me
