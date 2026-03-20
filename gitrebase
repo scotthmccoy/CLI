@@ -50,9 +50,6 @@ function confirm {
     green "Continuing"
 }
 
-#Bail on any errors
-set -e
-
 green "Getting current branch..."
 currentBranch=$(git rev-parse --abbrev-ref HEAD)
 
