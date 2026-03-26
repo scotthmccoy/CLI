@@ -50,6 +50,21 @@ function confirm {
     green "Continuing"
 }
 
+#Parse arguments
+NO_PUSH=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -n|--no-push)
+            NO_PUSH=true
+            shift
+            ;;
+        *)
+            red "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
 green "Getting current branch..."
 currentBranch=$(git rev-parse --abbrev-ref HEAD)
 
@@ -80,8 +95,14 @@ if ! [ $? -eq 0 ] ; then
 	exit 1
 fi
 
+if [ "$NO_PUSH" = true ]; then
+	green "Rebase complete. Skipping push (--no-push flag set)"
+	green "Done"
+	exit 0
+fi
+
 green "Force-push $currentBranch to origin?"
 confirm
-git push -f origin 
+git push -f origin
 
 green "Done"
