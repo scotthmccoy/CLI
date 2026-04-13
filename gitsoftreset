@@ -53,7 +53,7 @@ hashOfMergeBase=$(gitmergebase)
 originalCommitMessage=$(git log --format=%B -n 1 $hashOfOriginalCommit)
 
 green "Original commit message is: \n$originalCommitMessage"
-green "Soft-reset to that hash?"
+green "Soft-reset to $hashOfMergeBase?"
 
 confirm 
 
