@@ -49,25 +49,6 @@ function confirm {
 }
 
 
-#Parse arguments
-NO_UPDATE=false
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --no-update)
-            NO_UPDATE=true
-            shift
-            ;;
-        *)
-            red "Unknown option: $1"
-            exit 1
-            ;;
-    esac
-done
-
-if [[ $NO_UPDATE == false ]]; then
-    gitupdate
-fi
-
 hashOfMergeBase=$(gitmergebase)
 originalCommitMessage=$(git log --format=%B -n 1 $hashOfOriginalCommit)
 
