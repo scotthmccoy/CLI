@@ -30,8 +30,22 @@ function dump_address_book {
 
 cd ~/Library/Application\ Support/AddressBook/
 
-# Find the freshest DB
-db_path=$(find . -type f -name "AddressBook-v22.abcddb" | xargs ls -tr | tail -n 1)
+# Find the freshest DB that passes an integrity check
+db_path=""
+for candidate in $(find . -type f -name "AddressBook-v22.abcddb" | xargs ls -tr | tail -r); do
+    if sqlite3 "$candidate" "PRAGMA integrity_check;" 2>/dev/null | head -1 | grep -q "^ok$"; then
+        db_path="$candidate"
+        break
+    else
+        echo "Skipping corrupt database: $candidate"
+    fi
+done
+
+if [[ -z "$db_path" ]]; then
+    echo "No valid AddressBook database found."
+    safe_say "Error"
+    exit 1
+fi
 
 # 🚨 Dump the address book
 dump_address_book $db_path
