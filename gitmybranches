@@ -1,5 +1,9 @@
 git fetch --all >/dev/null 2>&1
 me=$(whoami)
 
-#Get all local and remote branches
-git branch -a | grep $me
+#Get all local and remote branches with last commit date
+git branch -a | grep $me | while read -r branch; do
+    branch=$(echo $branch | xargs)
+    date=$(git log -1 --format=%cd $branch)
+    echo "$branch ($date)"
+done
