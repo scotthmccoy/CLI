@@ -90,6 +90,6 @@ fi
 
 green "Force-push $currentBranch to origin?"
 confirm
-git push -f origin
+git push --force-with-lease origin
 
 green "Done"
