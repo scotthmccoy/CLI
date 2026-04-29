@@ -71,21 +71,8 @@ currentBranch=$(git rev-parse --abbrev-ref HEAD)
 green "Current branch is $currentBranch, determining ancestor..."
 branchedFrom=$(gitparent);
 
-green "Branched from $branchedFrom. Switching branches..."
-git checkout $branchedFrom
-sleep 1
-
-green "Pulling..."
-git pull
-
-green "Switching back to $currentBranch..."
-git checkout $currentBranch
-
-#This sleep seems to prevent some kind of race condition in git
-sleep 1
-
-green "Attempting rebase of $currentBranch onto $branchedFrom..."
-git rebase $branchedFrom
+green "Rebasing $currentBranch onto $branchedFrom..."
+git pull --rebase origin $branchedFrom
 
 if ! [ $? -eq 0 ] ; then
 	red "Rebase failed! Make appropriate code changes and then use:"
