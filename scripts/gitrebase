@@ -52,12 +52,39 @@ function confirm {
 
 #Parse arguments
 NO_PUSH=false
+RESOLVE_TIMID=false
+RESOLVE_BOLD=false
+
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -h|--help)
+            echo "Usage: gitrebase [options]"
+            echo ""
+            echo "Rebases the current branch onto its parent branch."
+            echo ""
+            echo "Options:"
+            echo "  -n, --no-push        Skip the force-push after rebasing"
+            echo "  --resolve-timid      Resolve conflicts in favor of the branch being rebased onto"
+            echo "  --resolve-bold       Resolve conflicts in favor of the branch being rebased"
+            echo "  -h, --help           Show this help message"
+            exit 0
+            ;;
         -n|--no-push)
             NO_PUSH=true
             shift
             ;;
+
+        # Resolve in favor of the branch being rebased onto. This is typically another developer's changes. This will use the "ours" strategy.
+        --timid)
+            RESOLVE_TIMID=true
+            shift
+            ;;
+
+        # Resolve in favor of the branch being rebased. This is typically the developer's changes. This will use the "theirs" strategy.
+        --bold)
+            RESOLVE_BOLD=true
+            shift
+            ;;            
         *)
             red "Unknown option: $1"
             exit 1
@@ -71,8 +98,20 @@ currentBranch=$(git rev-parse --abbrev-ref HEAD)
 green "Current branch is $currentBranch, determining ancestor..."
 branchedFrom=$(gitparent);
 
+REBASE_ARGS=""
+if [ "$RESOLVE_TIMID" = true ]; then
+    REBASE_ARGS="-X ours"
+fi
+if [ "$RESOLVE_BOLD" = true ]; then
+    REBASE_ARGS="-X theirs"
+fi
+
+
 green "Rebasing $currentBranch onto $branchedFrom..."
-git pull --rebase origin $branchedFrom
+COMMAND="git pull --rebase origin $branchedFrom $REBASE_ARGS"
+yellow "Running: $COMMAND"
+
+eval "$COMMAND"
 
 if ! [ $? -eq 0 ] ; then
 	red "Rebase failed! Make appropriate code changes and then use:"
