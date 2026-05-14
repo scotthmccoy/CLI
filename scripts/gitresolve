@@ -62,5 +62,5 @@ git status | grep "both modified" | cut -d':' -f2- | awk {'print $1'} | xargs gi
 
 # Set the GIT_EDITOR to "true". This is a clever "hack" used to bypass or suppress the text editor when performing Git operations that usually require manual input.
 # Continue the rebase!
-GIT_EDITOR=true; git rebase --continue
+GIT_EDITOR=true git rebase --continue
 

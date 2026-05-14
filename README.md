@@ -4,7 +4,10 @@ A collection of scripts I've found helpful for automating daily git chores.
 
 ## Installation
 
-1. Copy the the scripts into `/usr/local/bin/`
+1. Add the scripts directory to your PATH by adding this line to `~/.zshenv`:
+```
+export PATH="$PATH:/path/to/CLI/scripts"
+```
 2. Specify develop branches in the repo's `.git/config` file. Example:
 ```
 git config scripts.develop "devel-4.0 devel-2.9"
