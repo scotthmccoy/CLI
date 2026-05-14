@@ -53,24 +53,14 @@ function confirm {
 #exit script immediately if any command returns a non-zero exit code (indicating an error)
 set -o errexit
 
-# "Theirs" means the branch being rebased or merged. This is typically a feature branch being merged into or rebased onto an ongoing branch.
-# Since this is the typical use case for git, we consider "theirs" to be the default.
-function resolveUsingTheirs {
-    git status -s | grep -e ^UU -e ^AA | awk '{print $2}' | xargs sed -i '' -e '/<<<<<<</,/=======/d'
-    git status -s | grep -e ^UU -e ^AA | awk '{print $2}' | xargs sed -i '' -e '/^>>>>>>>/d'
-    git status -s | grep -e ^UU -e ^AA | awk '{print $2}' | xargs git stage
-}
+# Assume the branch being rebased is my work, and that my work sucks.
+# This means we checkout the "ours" version, which is, confusingly, the branch NOT being rebased.
+git status | grep "both modified" | cut -d':' -f2- | awk {'print $1'} | xargs git checkout --ours
 
-# "Ours" means the branch you're rebasing *onto* or merging *into*. Using "Ours" is a bad code smell.
-# Merges and rebases should almost always be from a feature branch to an ongoing branch, so if you find yourself wanting to resolve in favor
-# of the *ongoing* instead of the new *feature*, you should stop and ask if you'd be better served by first merging the *ongoing* branch into the 
-# the *feature* branch and resolving the conflicts on the feature branch first.
-function resolveUsingOurs {
-    git status -s | grep -e ^UU -e ^AA | awk '{print $2}' | xargs sed -i '' -e '/=======/,/>>>>>>>/d'
-    git status -s | grep -e ^UU -e ^AA | awk '{print $2}' | xargs sed -i '' -e '/^<<<<<<</d'
-    git status -s | grep -e ^UU -e ^AA | awk '{print $2}' | xargs git stage
-}
+# Stage all the conflicted files. This will mark them as resolved.
+git status | grep "both modified" | cut -d':' -f2- | awk {'print $1'} | xargs git add
 
-resolveUsingTheirs
-
+# Set the GIT_EDITOR to "true". This is a clever "hack" used to bypass or suppress the text editor when performing Git operations that usually require manual input.
+# Continue the rebase!
+GIT_EDITOR=true; git rebase --continue
 
