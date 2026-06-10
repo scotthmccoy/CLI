@@ -53,6 +53,19 @@ function confirm {
 NO_UPDATE=false
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -h|--help)
+            echo "Usage: gitsoftreset [options]"
+            echo ""
+            echo "Soft-resets the current branch to the merge-base with its parent branch."
+            echo "All commits since the merge-base become staged changes."
+            echo ""
+            echo "By default, pulls the parent branch first to ensure the merge-base is up to date."
+            echo ""
+            echo "Options:"
+            echo "  --no-update    Skip pulling the parent branch before resetting"
+            echo "  -h, --help     Show this help message"
+            exit 0
+            ;;
         --no-update)
             NO_UPDATE=true
             shift
