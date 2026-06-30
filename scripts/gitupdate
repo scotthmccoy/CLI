@@ -32,11 +32,22 @@ if [ -z "$develBranches" ]; then
     exit 1
 fi
 
+originalBranch=$(git symbolic-ref --short HEAD 2>/dev/null)
+branchChanged=false
+
 for develBranch in $develBranches
 do
     green "Pulling $develBranch"
-    git checkout $develBranch
+    if [ "$develBranch" != "$originalBranch" ]; then
+        git checkout $develBranch
+        branchChanged=true
+    fi
     git pull
 done
+
+if [ "$branchChanged" = true ] && [ -n "$originalBranch" ]; then
+    green "Returning to $originalBranch"
+    git checkout $originalBranch
+fi
 
 green "Done!"
