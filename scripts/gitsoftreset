@@ -97,10 +97,10 @@ if [[ $PULL_PARENT == true ]]; then
 fi
 
 firstCommitHash=$(gitfirstcommithash) || { red "gitfirstcommithash failed: $firstCommitHash"; exit 1; }
-firstCommitMessage=$(git log --format=%B $firstCommitHash)
+firstCommitMessage=$(git log -1 --format=%B $firstCommitHash)
 
 mergeBaseCommitHash=$(gitmergebase) || { red "gitmergebase failed: $mergeBaseCommitHash"; exit 1; }
-mergeBaseCommitMessage=$(git log --format=%B $mergeBaseCommitHash)
+mergeBaseCommitMessage=$(git log -1 --format=%B $mergeBaseCommitHash)
 
 green "First commit on branch $workingBranch $firstCommitHash is: \n$firstCommitHash"
 
