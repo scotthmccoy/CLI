@@ -77,10 +77,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ $PULL_PARENT == true ]]; then
-    green "Getting current branch..."
-    workingBranch=$(git rev-parse --abbrev-ref HEAD)
 
+green "Getting current branch..."
+workingBranch=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ $PULL_PARENT == true ]]; then
     green "Current branch is $workingBranch, determining ancestor..."
     parent=$(gitparent) || { red "gitparent failed: $parent"; exit 1; }
 
@@ -95,11 +96,17 @@ if [[ $PULL_PARENT == true ]]; then
     git checkout $workingBranch
 fi
 
-hashOfMergeBase=$(gitmergebase)
-originalCommitMessage=$(git log --format=%B -n 1 $hashOfMergeBase)
+firstCommitHash=$(gitfirstcommithash) || { red "gitfirstcommithash failed: $firstCommitHash"; exit 1; }
+firstCommitMessage=$(git log --format=%B $firstCommitHash)
 
-green "Original commit message is: \n$originalCommitMessage"
-green "Soft-reset to $hashOfMergeBase?"
+mergeBaseCommitHash=$(gitmergebase) || { red "gitmergebase failed: $mergeBaseCommitHash"; exit 1; }
+mergeBaseCommitMessage=$(git log --format=%B $mergeBaseCommitHash)
+
+green "First commit on branch $workingBranch $firstCommitHash is: \n$firstCommitHash"
+
+green "Merge base commit $mergeBaseCommitHash is: \n$mergeBaseCommitMessage"
+
+green "Soft-reset to merge base of $mergeBaseCommitHash?"
 
 confirm 
 
