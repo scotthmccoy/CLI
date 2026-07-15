@@ -1,5 +1,22 @@
 #!/bin/zsh
 
+#Text coloring functions
+function color {
+    if tty -s
+    then
+        tput setaf $2
+        echo "$1"
+        tput sgr0
+        return
+    fi
+    
+    echo "$1"
+}
+
+function red {
+    color "$1" 1
+}
+
 #Get branches it could have been branched from
 develBranches=($(git config scripts.develop))
 develBranchesLength=${#develBranches}
@@ -8,7 +25,7 @@ develBranchesLength=${#develBranches}
 
 # No devel branches means can't have branched from anywhere
 if [ $develBranchesLength = 0 ]; then 
-	echo "develBranches not set! Use git config scripts.develop" >&2
+	red "develBranches not set! Use git config scripts.develop" >&2
 	exit 1
 fi
 
