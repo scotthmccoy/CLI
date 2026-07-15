@@ -102,9 +102,11 @@ firstCommitMessage=$(git log -1 --format=%B $firstCommitHash)
 mergeBaseCommitHash=$(gitmergebase) || { red "gitmergebase failed: $mergeBaseCommitHash"; exit 1; }
 mergeBaseCommitMessage=$(git log -1 --format=%B $mergeBaseCommitHash)
 
-green "First commit on branch $workingBranch $firstCommitHash is: \n$firstCommitHash"
+green "First commit on branch $workingBranch $firstCommitHash is:"
+echo $firstCommitMessage
 
-green "Merge base commit $mergeBaseCommitHash is: \n$mergeBaseCommitMessage"
+green "Merge base commit $mergeBaseCommitHash is:"
+echo $mergeBaseCommitMessage
 
 green "Soft-reset to merge base of $mergeBaseCommitHash?"
 
