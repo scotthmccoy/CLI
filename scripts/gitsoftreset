@@ -82,10 +82,10 @@ if [[ $NO_UPDATE == false ]]; then
     currentBranch=$(git rev-parse --abbrev-ref HEAD)
 
     green "Current branch is $currentBranch, determining ancestor..."
-    branchedFrom=$(gitparent);
+    parent=$(gitparent) || { red "gitparent failed: $parent"; exit 1; }
 
-    green "Branched from $branchedFrom. Switching branches..."
-    git checkout $branchedFrom
+    green "Branched from $parent. Switching branches..."
+    git checkout $parent
     sleep 1
 
     green "Pulling..."
