@@ -70,7 +70,7 @@ gitupdate
 
 green "Getting merge base..."
 currentBranch=$(git rev-parse --abbrev-ref HEAD)
-parent=$(gitparent) || { red "gitparent failed"; exit 1; }
+parent=$(gitparent) || { red "gitparent failed: $parent"; exit 1; }
 hashOfMergeBase=$(git merge-base $currentBranch $parent)
 mergeBaseCommitMessage=$(git log --format=oneline -n 1 $hashOfMergeBase)
 
