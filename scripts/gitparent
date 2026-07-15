@@ -21,6 +21,13 @@ fi
 #Get current branch
 currentBranch=$(git rev-parse --abbrev-ref HEAD)
 
+for develBranch in $develBranches; do
+	if [ "$currentBranch" = "$develBranch" ]; then
+		red "Current branch [$currentBranch] is a devel branch. It has no parent."
+		exit 1
+	fi
+done
+
 #Get the merge-base for this branch with the devel branches,
 #Then get the date that the branching occurred from that branch. 
 #Whichever one is more recent is the one that we branched from.
