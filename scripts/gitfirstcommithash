@@ -35,4 +35,4 @@ if [ -z "$commits" ]; then
     exit 1
 fi
 
-git log $parent..$currentBranch --oneline | tail -1 | awk '{print $0}'
+git log $parent..$currentBranch --oneline | tail -1 | awk '{print $1}'
