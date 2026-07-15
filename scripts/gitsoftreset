@@ -112,4 +112,4 @@ green "Soft-reset to merge base of $mergeBaseCommitHash?"
 
 confirm 
 
-git reset --soft $hashOfMergeBase
+git reset --soft $mergeBaseCommitHash
