@@ -10,7 +10,9 @@ function red {
     fi
 }
 
-if [[ -n "$SSH_CONNECTION" ]]; then
+if [[ "$1" == "--raw" ]]; then
+    hostname
+elif [[ -n "$SSH_CONNECTION" ]]; then
     red "SSHed into $(hostname)"
 else
     red "Local machine: $(hostname)"
