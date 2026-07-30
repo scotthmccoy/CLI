@@ -52,6 +52,7 @@ function confirm {
 
 #Parse arguments
 NO_PUSH=false
+FORCE_PUSH_IF_SUCCESSFUL=false
 RESOLVE_TIMID=false
 RESOLVE_BOLD=false
 
@@ -63,14 +64,20 @@ while [[ $# -gt 0 ]]; do
             echo "Rebases the current branch onto its parent branch."
             echo ""
             echo "Options:"
-            echo "  -n, --no-push        Skip the force-push after rebasing"
-            echo "  --resolve-timid      Resolve conflicts in favor of the branch being rebased onto"
-            echo "  --resolve-bold       Resolve conflicts in favor of the branch being rebased"
-            echo "  -h, --help           Show this help message"
+            echo "  -n, --no-push                Skip the force-push after rebasing"
+            echo "  --force-push-if-successful   Force-push without prompting if rebase succeeds"
+            echo "  --resolve-timid              Resolve conflicts in favor of the branch being rebased onto"
+            echo "  --resolve-bold               Resolve conflicts in favor of the branch being rebased"
+            echo "  -h, --help                   Show this help message"
             exit 0
             ;;
         -n|--no-push)
             NO_PUSH=true
+            shift
+            ;;
+
+        --force-push-if-successful)
+            FORCE_PUSH_IF_SUCCESSFUL=true
             shift
             ;;
 
@@ -123,6 +130,13 @@ fi
 
 if [ "$NO_PUSH" = true ]; then
 	green "Rebase complete. Skipping push (--no-push flag set)"
+	green "Done"
+	exit 0
+fi
+
+if [ "$FORCE_PUSH_IF_SUCCESSFUL" = true ]; then
+	green "Rebase complete. Force-pushing $currentBranch to origin..."
+	git push --force-with-lease origin
 	green "Done"
 	exit 0
 fi
