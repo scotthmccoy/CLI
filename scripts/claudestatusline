@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# claudestatusline — renderer for the Claude Code status line.
+#
+# Claude Code runs this on every status-line repaint, passing session JSON on
+# stdin. It renders in its own row ABOVE Claude Code's built-in footer badges
+# (which already show the PR number/url), so this line just adds the current
+# git branch name.
+#
+# The stdin JSON does NOT include the git branch, but it does include
+# workspace.current_dir, so we cd there and ask git ourselves. This keeps the
+# branch correct inside git worktrees.
+#
+# Wire it up in ~/.claude/settings.json:
+#   "statusLine": { "type": "command", "command": "~/CLI/scripts/claudestatusline" }
+
+input=$(cat)
+
+dir=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+[ -n "$dir" ] && cd "$dir" 2>/dev/null
+
+branch=$(git branch --show-current 2>/dev/null)
+
+if [ -n "$branch" ]; then
+    printf '\xf0\x9f\x8c\xbf %s' "$branch"
+fi

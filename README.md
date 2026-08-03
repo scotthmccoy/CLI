@@ -33,6 +33,13 @@ Prints the current branch's "parent branch" by finding the nearest commit to HEA
 ### gitprune
 Deletes local branches that have been fully merged into the list of branches specified in `scripts.develop`. Will not delete branches specified in `scripts.develop` or `scripts.protected`. Useful for cleaning up after merging PRs.
 
+### claudestatusline
+Renderer for the [Claude Code](https://code.claude.com) status line. Reads the session JSON on stdin, `cd`s into `workspace.current_dir`, and prints the current git branch (`🌿 <branch>`) — worktree-aware. Wire it up in `~/.claude/settings.json`:
+```json
+"statusLine": { "type": "command", "command": "~/CLI/scripts/claudestatusline" }
+```
+Requires `jq`. Renders in its own row above Claude Code's built-in footer badges (which already show the PR number), so it just adds the branch name.
+
 ### gitrebase
 Rebases the current branch onto the tip of its parent branch (See `gitparent`).
 
