@@ -43,7 +43,7 @@ func switchBackTo(branch: String) throws {
 
 // MARK: Script
 do {
-	
+
 	// Determine current branch:
 	let currentBranch = try shell("git branch").split(separator:"\n").filter {
 		$0.contains("*")
@@ -63,14 +63,40 @@ do {
 		try shell("git checkout main")
 	}
 
-	print("Pruning branches (removes any remote-tracking references that correspond to branches that have been deleted on the remote)...")
-	try shell("git fetch --prune origin")
+	print("Fetching remote branch list...")
+	let remoteOutput = try shell("git ls-remote --heads origin")
+	let remoteBranches = Set(
+		remoteOutput
+			.split(whereSeparator: \.isNewline)
+			.compactMap { line -> String? in
+				let parts = String(line).components(separatedBy: "\t")
+				guard parts.count == 2 else { return nil }
+				let ref = parts[1]
+				guard ref.hasPrefix("refs/heads/") else { return nil }
+				return String(ref.dropFirst("refs/heads/".count))
+			}
+	)
 
-	let branches = try shell("git branch -vv | grep gone | grep -v \"*\" | awk '{print $1}'")
+	let green = "\u{001B}[32m"
+	let reset = "\u{001B}[0m"
+
+	let allLocalBranches = try shell("git branch")
 		.split(whereSeparator: \.isNewline)
-		.map { String($0) }
+		.map { line -> String in
+			let s = String(line).trimmingCharacters(in: .whitespaces)
+			return (s.hasPrefix("* ") || s.hasPrefix("+ ")) ? String(s.dropFirst(2)) : s
+		}
+		.filter { !$0.isEmpty && $0 != "main" }
 
-	guard branches.count > 0 else {
+	let candidates = allLocalBranches.filter { !remoteBranches.contains($0) }
+
+	for branch in allLocalBranches {
+		if remoteBranches.contains(branch) {
+			print("\(green)Skipping \(branch) (has remote branch)\(reset)")
+		}
+	}
+
+	guard candidates.count > 0 else {
 		print("No branches to clean up")
 
 		try switchBackTo(branch: currentBranch)
@@ -79,15 +105,40 @@ do {
 		exit(0)
 	}
 
-	for branch in branches {
-		if boolPrompt("Delete branch: \(branch)? ") {
+	// Build a map of branch -> worktree path from `git worktree list --porcelain`
+	var worktreePaths: [String: String] = [:]
+	let worktreeOutput = try shell("git worktree list --porcelain")
+	for group in worktreeOutput.components(separatedBy: "\n\n") {
+		var path = ""
+		var branch = ""
+		for line in group.split(whereSeparator: \.isNewline) {
+			let lineStr = String(line)
+			if lineStr.hasPrefix("worktree ") {
+				path = String(lineStr.dropFirst("worktree ".count))
+			} else if lineStr.hasPrefix("branch refs/heads/") {
+				branch = String(lineStr.dropFirst("branch refs/heads/".count))
+			}
+		}
+		if !path.isEmpty && !branch.isEmpty {
+			worktreePaths[branch] = path
+		}
+	}
+
+	for branch in candidates {
+		if boolPrompt("\(green)Delete branch: \(branch)?\(reset) ") {
+			if let worktreePath = worktreePaths[branch] {
+				print("Removing worktree at \(worktreePath)...")
+				try shell("git worktree remove --force \(worktreePath.replacingOccurrences(of: " ", with: "\\ "))")
+			}
 			print("Deleting...")
 			try shell("git branch -D \(branch)")
 		}
 	}
 
-
 	try switchBackTo(branch: currentBranch)
+
+	print("\nRemaining branches:")
+	print(try shell("git branch"))
 
 	print("Done!")
 	try shell("command -v say &> /dev/null && say done")
