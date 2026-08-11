@@ -71,19 +71,26 @@ if [ -n "$ticket" ]; then
     [ -n "$title" ] && ticket_disp="$ticket ${title:0:100}"
 fi
 
-# Assemble the parts, joined by " · ". Every field is always shown; an empty
-# one renders as "(none)" rather than being omitted.
-parts=(
+# Render on two lines (the single line overflows / gets truncated rather than
+# soft-wrapping). Line 1 = identity, line 2 = work context. Every field is always
+# shown; an empty one renders as "(none)". Parts are joined by " · ".
+line1=(
     "💻 ${machine:-(none)}"
     "🤖 $model_disp"
     "🆔 ${session:-(none)}"
+)
+line2=(
     "🎫 $ticket_disp"
     "🌿 ${branch:-(none)}"
     "🔗 ${pr_url:-(none)}"
 )
 
-out=""
-for p in "${parts[@]}"; do
-    [ -z "$out" ] && out="$p" || out="$out · $p"
-done
-printf '%s' "$out"
+join_parts() {
+    local out="" p
+    for p in "$@"; do
+        [ -z "$out" ] && out="$p" || out="$out · $p"
+    done
+    printf '%s' "$out"
+}
+
+printf '%s\n%s' "$(join_parts "${line1[@]}")" "$(join_parts "${line2[@]}")"
