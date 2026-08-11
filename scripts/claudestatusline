@@ -3,10 +3,10 @@
 #
 # Claude Code runs this on every status-line repaint, passing session JSON on
 # stdin. It renders in its own row ABOVE Claude Code's built-in footer badges
-# (which already show the PR number/url). It shows: the machine (via whereami),
-# the model (red unless it's an Opus model), the current git branch, the JIRA
-# ticket parsed from the branch name (+ its title, truncated to 100 chars, from a
-# local cache), the current PR url, and the Claude session id.
+# (which already show the PR number/url). Rendered on two lines:
+#   line 1 = machine · model (red unless Opus) · session · ticket (+ full title
+#            from a local cache; the terminal truncates this line at window width)
+#   line 2 = git branch · PR url
 #
 # The stdin JSON does NOT include the git branch, but it does include
 # workspace.current_dir, so we cd there and ask git ourselves (keeps the branch
@@ -62,13 +62,14 @@ if ! printf '%s' "$model" | grep -qi 'opus'; then
     model_disp=$'\033[31m'"$model_disp"$'\033[0m'
 fi
 
-# Ticket, with its JIRA title appended (truncated to 100 chars) when available.
+# Ticket, with its full JIRA title appended when available. It sits on line 1,
+# which the terminal truncates at window width, so the title isn't pre-truncated.
 # There is no JIRA CLI/token on this host, so the title is read from a local cache
 # ($cache_dir/jira_<TICKET>) populated out-of-band (e.g. by Claude via the JIRA MCP).
 ticket_disp="${ticket:-(none)}"
 if [ -n "$ticket" ]; then
     title=$(cat "$cache_dir/jira_${ticket}" 2>/dev/null)
-    [ -n "$title" ] && ticket_disp="$ticket ${title:0:100}"
+    [ -n "$title" ] && ticket_disp="$ticket $title"
 fi
 
 # Render on two lines (the single line overflows / gets truncated rather than
@@ -78,9 +79,9 @@ line1=(
     "💻 ${machine:-(none)}"
     "🤖 $model_disp"
     "🆔 ${session:-(none)}"
+    "🎫 $ticket_disp"
 )
 line2=(
-    "🎫 $ticket_disp"
     "🌿 ${branch:-(none)}"
     "🔗 ${pr_url:-(none)}"
 )
