@@ -4,8 +4,9 @@
 # Claude Code runs this on every status-line repaint, passing session JSON on
 # stdin. It renders in its own row ABOVE Claude Code's built-in footer badges
 # (which already show the PR number/url). It shows: the machine (via whereami),
-# the model, the current git branch, the JIRA ticket parsed from the branch name
-# (if any), the current PR url, and the Claude session id.
+# the model (red unless it's an Opus model), the current git branch, the JIRA
+# ticket parsed from the branch name (+ its title, truncated to 100 chars, from a
+# local cache), the current PR url, and the Claude session id.
 #
 # The stdin JSON does NOT include the git branch, but it does include
 # workspace.current_dir, so we cd there and ask git ourselves (keeps the branch
@@ -24,6 +25,10 @@ branch=$(git branch --show-current 2>/dev/null)
 # Machine name via whereami (raw VM/host name); fall back to hostname -s.
 machine=$(~/CLI/scripts/whereami --raw 2>/dev/null || hostname -s 2>/dev/null)
 
+# Local cache dir for the network-y / externally-populated bits (PR url, ticket title).
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudestatusline"
+mkdir -p "$cache_dir" 2>/dev/null
+
 # JIRA ticket key parsed from the branch name, if present
 # (e.g. smccoy/RECSYSTEM-2143-do-thing → RECSYSTEM-2143). Uppercased for display.
 ticket=$(printf '%s' "$branch" | grep -oiE '[A-Z]{2,}-[0-9]+' | head -n1 | tr '[:lower:]' '[:upper:]')
@@ -34,8 +39,6 @@ ticket=$(printf '%s' "$branch" | grep -oiE '[A-Z]{2,}-[0-9]+' | head -n1 | tr '[
 # An empty result (no PR) is cached too, so we don't re-hit gh every repaint.
 pr_url=""
 if [ -n "$branch" ]; then
-    cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudestatusline"
-    mkdir -p "$cache_dir" 2>/dev/null
     safe=$(printf '%s' "$branch" | tr -c 'A-Za-z0-9._-' '_')
     cache_file="$cache_dir/pr_${safe}"
     ttl=60
@@ -53,13 +56,28 @@ fi
 model=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // empty')
 session=$(printf '%s' "$input" | jq -r '.session_id // empty')
 
+# Model in red unless it's an Opus model.
+model_disp="${model:-(none)}"
+if ! printf '%s' "$model" | grep -qi 'opus'; then
+    model_disp=$'\033[31m'"$model_disp"$'\033[0m'
+fi
+
+# Ticket, with its JIRA title appended (truncated to 100 chars) when available.
+# There is no JIRA CLI/token on this host, so the title is read from a local cache
+# ($cache_dir/jira_<TICKET>) populated out-of-band (e.g. by Claude via the JIRA MCP).
+ticket_disp="${ticket:-(none)}"
+if [ -n "$ticket" ]; then
+    title=$(cat "$cache_dir/jira_${ticket}" 2>/dev/null)
+    [ -n "$title" ] && ticket_disp="$ticket ${title:0:100}"
+fi
+
 # Assemble the parts, joined by " · ". Every field is always shown; an empty
 # one renders as "(none)" rather than being omitted.
 parts=(
     "💻 ${machine:-(none)}"
-    "🤖 ${model:-(none)}"
+    "🤖 $model_disp"
     "🆔 ${session:-(none)}"
-    "🎫 ${ticket:-(none)}"
+    "🎫 $ticket_disp"
     "🌿 ${branch:-(none)}"
     "🔗 ${pr_url:-(none)}"
 )
