@@ -3,12 +3,13 @@
 #
 # Claude Code runs this on every status-line repaint, passing session JSON on
 # stdin. It renders in its own row ABOVE Claude Code's built-in footer badges
-# (which already show the PR number/url), so this line just adds the current
-# git branch name.
+# (which already show the PR number/url). It shows: the machine (via whereami),
+# the model, the current git branch, the JIRA ticket parsed from the branch name
+# (if any), the current PR url, and the Claude session id.
 #
 # The stdin JSON does NOT include the git branch, but it does include
-# workspace.current_dir, so we cd there and ask git ourselves. This keeps the
-# branch correct inside git worktrees.
+# workspace.current_dir, so we cd there and ask git ourselves (keeps the branch
+# correct inside git worktrees). The session id comes from stdin (.session_id).
 #
 # Wire it up in ~/.claude/settings.json:
 #   "statusLine": { "type": "command", "command": "~/CLI/scripts/claudestatusline" }
@@ -20,6 +21,49 @@ dir=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 
 branch=$(git branch --show-current 2>/dev/null)
 
+# Machine name via whereami (raw VM/host name); fall back to hostname -s.
+machine=$(~/CLI/scripts/whereami --raw 2>/dev/null || hostname -s 2>/dev/null)
+
+# JIRA ticket key parsed from the branch name, if present
+# (e.g. smccoy/RECSYSTEM-2143-do-thing → RECSYSTEM-2143). Uppercased for display.
+ticket=$(printf '%s' "$branch" | grep -oiE '[A-Z]{2,}-[0-9]+' | head -n1 | tr '[:lower:]' '[:upper:]')
+
+# Full URL of the PR for the current branch (best-effort). `gh pr view` is a
+# network call and the status line repaints up to ~3x/sec, so cache the result
+# per-branch with a 60s TTL and only shell out when the cache is missing/stale.
+# An empty result (no PR) is cached too, so we don't re-hit gh every repaint.
+pr_url=""
 if [ -n "$branch" ]; then
-    printf '\xf0\x9f\x8c\xbf %s' "$branch"
+    cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudestatusline"
+    mkdir -p "$cache_dir" 2>/dev/null
+    safe=$(printf '%s' "$branch" | tr -c 'A-Za-z0-9._-' '_')
+    cache_file="$cache_dir/pr_${safe}"
+    ttl=60
+    now=$(date +%s)
+    mtime=$([ -f "$cache_file" ] && stat -c %Y "$cache_file" 2>/dev/null || echo 0)
+    if [ $((now - mtime)) -lt "$ttl" ]; then
+        pr_url=$(cat "$cache_file" 2>/dev/null)
+    else
+        pr_url=$(timeout 2 gh pr view --json url --jq '.url' 2>/dev/null)
+        printf '%s' "$pr_url" >"$cache_file" 2>/dev/null
+    fi
 fi
+
+# Model and session id come straight from the stdin JSON.
+model=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // empty')
+session=$(printf '%s' "$input" | jq -r '.session_id // empty')
+
+# Assemble the parts that are present, joined by " · ".
+parts=()
+[ -n "$machine" ] && parts+=("💻 $machine")
+[ -n "$model" ]   && parts+=("🤖 $model")
+[ -n "$session" ] && parts+=("🆔 $session")
+[ -n "$ticket" ]  && parts+=("🎫 $ticket")
+[ -n "$branch" ]  && parts+=("🌿 $branch")
+[ -n "$pr_url" ]  && parts+=("🔗 $pr_url")
+
+out=""
+for p in "${parts[@]}"; do
+    [ -z "$out" ] && out="$p" || out="$out · $p"
+done
+printf '%s' "$out"
