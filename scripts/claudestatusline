@@ -53,14 +53,16 @@ fi
 model=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // empty')
 session=$(printf '%s' "$input" | jq -r '.session_id // empty')
 
-# Assemble the parts that are present, joined by " · ".
-parts=()
-[ -n "$machine" ] && parts+=("💻 $machine")
-[ -n "$model" ]   && parts+=("🤖 $model")
-[ -n "$session" ] && parts+=("🆔 $session")
-[ -n "$ticket" ]  && parts+=("🎫 $ticket")
-[ -n "$branch" ]  && parts+=("🌿 $branch")
-[ -n "$pr_url" ]  && parts+=("🔗 $pr_url")
+# Assemble the parts, joined by " · ". Every field is always shown; an empty
+# one renders as "(none)" rather than being omitted.
+parts=(
+    "💻 ${machine:-(none)}"
+    "🤖 ${model:-(none)}"
+    "🆔 ${session:-(none)}"
+    "🎫 ${ticket:-(none)}"
+    "🌿 ${branch:-(none)}"
+    "🔗 ${pr_url:-(none)}"
+)
 
 out=""
 for p in "${parts[@]}"; do
