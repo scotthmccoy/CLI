@@ -6,28 +6,54 @@
 # (which already show the PR number/url). Rendered on two lines:
 #   line 1 = machine · model (red unless Opus) · session · ticket (+ full title
 #            from a local cache; the terminal truncates this line at window width)
-#   line 2 = git branch · PR url
+#   line 2 = git branch (🌲 in a worktree, 🌿 otherwise) · PR url
 #
 # The stdin JSON does NOT include the git branch, but it does include
-# workspace.current_dir, so we cd there and ask git ourselves (keeps the branch
-# correct inside git worktrees). The session id comes from stdin (.session_id).
+# workspace.current_dir, so we cd there and ask git ourselves. When this session
+# is bound to a git worktree (recorded per-session by sb-work-on-ticket in
+# $cache_dir/worktree_<session>), we cd to that worktree instead — because
+# workspace.current_dir keeps pointing at the MAIN tree, which is usually on a
+# different branch. The session id comes from stdin (.session_id).
 #
 # Wire it up in ~/.claude/settings.json:
 #   "statusLine": { "type": "command", "command": "~/CLI/scripts/claudestatusline" }
 
 input=$(cat)
 
+# Session id (from stdin) — read early because it keys the per-session worktree marker.
+session=$(printf '%s' "$input" | jq -r '.session_id // empty')
+
+# Local cache dir for the network-y / externally-populated bits (PR url, ticket
+# title) and the per-session worktree marker.
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudestatusline"
+mkdir -p "$cache_dir" 2>/dev/null
+
+# Directory we ask git about. Default to the session's workspace dir from stdin.
+# But if this session is bound to a git worktree (sb-work-on-ticket records the
+# worktree path in $cache_dir/worktree_<session> when it works in multi-instance
+# mode), workspace.current_dir still points at the MAIN tree — a different branch
+# — so the worktree is the real source of truth. Prefer it while it still points
+# at a live directory; drop the marker once the worktree is gone.
 dir=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+in_worktree=0
+if [ -n "$session" ]; then
+    wt_marker="$cache_dir/worktree_${session}"
+    if [ -f "$wt_marker" ]; then
+        wt_dir=$(cat "$wt_marker" 2>/dev/null)
+        if [ -n "$wt_dir" ] && [ -d "$wt_dir" ]; then
+            dir="$wt_dir"
+            in_worktree=1
+        else
+            rm -f "$wt_marker" 2>/dev/null
+        fi
+    fi
+fi
 [ -n "$dir" ] && cd "$dir" 2>/dev/null
 
 branch=$(git branch --show-current 2>/dev/null)
 
 # Machine name via whereami (raw VM/host name); fall back to hostname -s.
 machine=$(~/CLI/scripts/whereami --raw 2>/dev/null || hostname -s 2>/dev/null)
-
-# Local cache dir for the network-y / externally-populated bits (PR url, ticket title).
-cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudestatusline"
-mkdir -p "$cache_dir" 2>/dev/null
 
 # JIRA ticket key parsed from the branch name, if present
 # (e.g. smccoy/RECSYSTEM-2143-do-thing → RECSYSTEM-2143). Uppercased for display.
@@ -52,9 +78,8 @@ if [ -n "$branch" ]; then
     fi
 fi
 
-# Model and session id come straight from the stdin JSON.
+# Model comes straight from the stdin JSON (session id was read earlier).
 model=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // empty')
-session=$(printf '%s' "$input" | jq -r '.session_id // empty')
 
 # Model in red unless it's an Opus model.
 model_disp="${model:-(none)}"
@@ -81,8 +106,11 @@ line1=(
     "🆔 ${session:-(none)}"
     "🎫 $ticket_disp"
 )
+# 🌲 (pine) when the branch comes from a git worktree, 🌿 (sprig) otherwise.
+branch_icon="🌿"
+[ "$in_worktree" = 1 ] && branch_icon="🌲"
 line2=(
-    "🌿 ${branch:-(none)}"
+    "$branch_icon ${branch:-(none)}"
     "🔗 ${pr_url:-(none)}"
 )
 

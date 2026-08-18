@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# claudeworktreedetect — PostToolUse hook that binds a Claude Code session's
+# status line to whatever git worktree it is actually working in.
+#
+# Why: the status line (~/CLI/scripts/claudestatusline) prefers a per-session
+# marker at $cache_dir/worktree_<session_id> over the session's workspace dir —
+# because in a worktree workflow the workspace dir keeps pointing at the MAIN
+# tree (usually a different branch). Rather than make each skill announce its
+# worktree, this hook lets Claude "just detect it": on every Bash/Edit/Write it
+# looks at the path being touched, and if that path lives inside a *linked* git
+# worktree, it records that worktree as the session's active tree.
+#
+# Wire in ~/.claude/settings.json under hooks.PostToolUse with matcher
+# "Bash|Edit|Write|MultiEdit|NotebookEdit". Always exits 0 — never blocks a tool.
+#
+# Assumption: worktrees live under ~/worktrees (the sb-work-on-ticket / ewt
+# convention). The "/worktrees/" prefilter keeps the hook ~free on normal calls.
+
+input=$(cat)
+
+session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+[ -n "$session" ] || exit 0
+
+# Path-bearing fields from the tool input: file paths + the bash command string.
+blob=$(printf '%s' "$input" | jq -r '
+  [ .tool_input.file_path?,
+    .tool_input.notebook_path?,
+    .tool_input.command?,
+    (.tool_input.edits[]?.file_path?)
+  ] | map(select(. != null and . != "")) | join("\n")
+' 2>/dev/null)
+
+# Fast bail: nothing mentions a worktree path.
+case "$blob" in
+    *"/worktrees/"*) ;;
+    *) exit 0 ;;
+esac
+
+# First non-space token that points inside a worktree. Resolving the real git
+# toplevel from it handles branch names with slashes (e.g. smccoy/TICKET-1-foo,
+# which lives at ~/worktrees/smccoy/TICKET-1-foo — two path components).
+cand=$(printf '%s' "$blob" | grep -oE "[^[:space:]\"'\`]*/worktrees/[^[:space:]\"'\`]*" | head -n1)
+[ -n "$cand" ] || exit 0
+
+# Expand a leading ~ (tool commands often use ~/worktrees/... literally).
+case "$cand" in
+    "~/"*) cand="$HOME/${cand#\~/}" ;;
+    "~"*)  cand="$HOME/${cand#\~}" ;;
+esac
+
+# git needs a directory: if the token is a file (or doesn't exist), use its dir.
+probe="$cand"
+[ -d "$probe" ] || probe=$(dirname "$probe")
+root=$(git -C "$probe" rev-parse --show-toplevel 2>/dev/null)
+[ -n "$root" ] || exit 0
+
+# Only bind for a *linked* worktree, never the main checkout. In a linked
+# worktree --git-dir (…/.git/worktrees/<name>) differs from --git-common-dir
+# (…/.git); in the main tree they are equal.
+gd=$(git -C "$root" rev-parse --git-dir 2>/dev/null)
+gc=$(git -C "$root" rev-parse --git-common-dir 2>/dev/null)
+[ -n "$gd" ] && [ "$gd" != "$gc" ] || exit 0
+
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudestatusline"
+mkdir -p "$cache_dir" 2>/dev/null
+printf '%s' "$root" > "$cache_dir/worktree_${session}" 2>/dev/null
+
+exit 0
