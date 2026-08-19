@@ -52,11 +52,16 @@ function confirm {
 
 #Parse arguments
 NO_PUSH=false
+PREPEND=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         -n|--no-push)
             NO_PUSH=true
             shift
+            ;;
+        -p|--prepend)
+            PREPEND="$2"
+            shift 2
             ;;
         *)
             red "Unknown option: $1"
@@ -83,18 +88,22 @@ fi
 
 
 
-green "Getting message of first commit..."
-hashOfOriginalCommit=$(git rev-list $parent..HEAD | tail -1)
-originalCommitMessage=$(git log --format=%B -n 1 $hashOfOriginalCommit)
+green "Collecting all commit messages (oldest first)..."
+combinedMessage=$(git log --format=%B --reverse $hashOfMergeBase..HEAD | awk 'NF{p=1} p')
+if [[ -n "$PREPEND" ]]; then
+    combinedMessage="$PREPEND
 
-green "Original commit message is: \n$originalCommitMessage"
-green "Squash to original commit using that message?"
+$combinedMessage"
+fi
+
+green "Combined commit message:\n$combinedMessage"
+green "Squash all commits using that combined message?"
 
 if [ "$NO_PUSH" = false ]; then
     confirm
 fi
 git reset --soft $hashOfMergeBase
-git add -A && git commit -m "$originalCommitMessage"
+git add -A && git commit -m "$combinedMessage"
 
 if [ "$NO_PUSH" = true ]; then
     green "Squash complete. Skipping push (--no-push flag set)"
