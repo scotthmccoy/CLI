@@ -39,7 +39,11 @@ if [ -n "$gd" ] && [ "$gd" != "$gc" ]; then
     exit 1
 fi
 
-currentBranch=$(git rev-parse --abbrev-ref HEAD)
+if [ -n "$1" ]; then
+    currentBranch="$1"
+else
+    currentBranch=$(git rev-parse --abbrev-ref HEAD)
+fi
 green "Current branch is $currentBranch"
 
 worktreePath="$HOME/worktrees/$currentBranch"

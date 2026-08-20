@@ -30,24 +30,45 @@ function safe_say {
     fi
 }
 
-# Must be in a linked worktree
-gd=$(git rev-parse --git-dir 2>/dev/null)
-gc=$(git rev-parse --git-common-dir 2>/dev/null)
+if [ -n "$1" ]; then
+    currentBranch="$1"
+    worktreePath="$HOME/worktrees/$currentBranch"
+    mainPath=$(git rev-parse --show-toplevel 2>/dev/null)
 
-if [ -z "$gd" ] || [ "$gd" = "$gc" ]; then
-    red "Not in a worktree"
-    exit 1
+    if [ -z "$mainPath" ]; then
+        red "Not inside a git repository"
+        exit 1
+    fi
+
+    if [ ! -d "$worktreePath" ]; then
+        red "No worktree found at $worktreePath"
+        exit 1
+    fi
+
+    if [ -n "$(git -C "$worktreePath" status --porcelain 2>/dev/null)" ]; then
+        red "Uncommitted changes in worktree — commit or stash them first"
+        exit 1
+    fi
+else
+    # Must be in a linked worktree
+    gd=$(git rev-parse --git-dir 2>/dev/null)
+    gc=$(git rev-parse --git-common-dir 2>/dev/null)
+
+    if [ -z "$gd" ] || [ "$gd" = "$gc" ]; then
+        red "Not in a worktree"
+        exit 1
+    fi
+
+    # Bail on uncommitted changes
+    if [ -n "$(git status --porcelain)" ]; then
+        red "Uncommitted changes in worktree — commit or stash them first"
+        exit 1
+    fi
+
+    currentBranch=$(git rev-parse --abbrev-ref HEAD)
+    worktreePath=$(git rev-parse --show-toplevel)
+    mainPath=$(dirname "$(git rev-parse --git-common-dir)")
 fi
-
-# Bail on uncommitted changes
-if [ -n "$(git status --porcelain)" ]; then
-    red "Uncommitted changes in worktree — commit or stash them first"
-    exit 1
-fi
-
-currentBranch=$(git rev-parse --abbrev-ref HEAD)
-worktreePath=$(git rev-parse --show-toplevel)
-mainPath=$(dirname "$(git rev-parse --git-common-dir)")
 
 green "Branch: $currentBranch"
 green "Worktree: $worktreePath"
