@@ -1,0 +1,63 @@
+#!/bin/zsh
+
+function color {
+    if tty -s
+    then
+        tput setaf $2
+        echo "$1"
+        tput sgr0
+        return
+    fi
+
+    echo "$1"
+}
+
+function red {
+    color "$1" 1
+}
+
+function yellow {
+    color "$1" 3
+}
+
+function green {
+    color "$1" 2
+}
+
+function safe_say {
+    if command -v say &> /dev/null; then
+        say "$1"
+    fi
+}
+
+# Detect if already in a linked worktree (git-dir differs from git-common-dir)
+gd=$(git rev-parse --git-dir 2>/dev/null)
+gc=$(git rev-parse --git-common-dir 2>/dev/null)
+
+if [ -n "$gd" ] && [ "$gd" != "$gc" ]; then
+    red "Already in a worktree"
+    exit 1
+fi
+
+currentBranch=$(git rev-parse --abbrev-ref HEAD)
+green "Current branch is $currentBranch"
+
+worktreePath="$HOME/worktrees/$currentBranch"
+
+green "Checking out main..."
+git checkout main
+
+if ! [ $? -eq 0 ]; then
+    red "Failed to checkout main"
+    exit 1
+fi
+
+green "Creating worktree at $worktreePath..."
+git worktree add "$worktreePath" "$currentBranch"
+
+if ! [ $? -eq 0 ]; then
+    red "Failed to create worktree"
+    exit 1
+fi
+
+green "Worktree created at $worktreePath"
