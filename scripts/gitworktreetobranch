@@ -30,6 +30,27 @@ function safe_say {
     fi
 }
 
+function usage {
+    cat <<'USAGE'
+Usage: gitworktreetobranch [<branch>]
+
+Collapse a linked worktree back into a plain branch checkout.
+
+Removes the worktree at ~/worktrees/<branch> and checks <branch> out in the
+main checkout. With no argument, must be run from inside the linked worktree
+(it infers the branch and main checkout). With <branch>, can be run from the
+main checkout. Fails if the worktree has uncommitted changes.
+
+Options:
+  -h, --help    Show this help and exit
+USAGE
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    usage
+    exit 0
+fi
+
 if [ -n "$1" ]; then
     currentBranch="$1"
     worktreePath="$HOME/worktrees/$currentBranch"

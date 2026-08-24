@@ -30,6 +30,26 @@ function safe_say {
     fi
 }
 
+function usage {
+    cat <<'USAGE'
+Usage: gitbranchtoworktree [<branch>]
+
+Move a branch out of the main checkout into its own linked worktree.
+
+Checks out main in the main checkout, then creates a worktree for <branch>
+at ~/worktrees/<branch>. With no argument, uses the currently checked-out
+branch. Cannot be run from inside a linked worktree.
+
+Options:
+  -h, --help    Show this help and exit
+USAGE
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    usage
+    exit 0
+fi
+
 # Detect if already in a linked worktree (git-dir differs from git-common-dir)
 gd=$(git rev-parse --git-dir 2>/dev/null)
 gc=$(git rev-parse --git-common-dir 2>/dev/null)
