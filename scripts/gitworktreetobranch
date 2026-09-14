@@ -36,10 +36,12 @@ Usage: gitworktreetobranch [<branch>]
 
 Collapse a linked worktree back into a plain branch checkout.
 
-Removes the worktree at ~/worktrees/<branch> and checks <branch> out in the
-main checkout. With no argument, must be run from inside the linked worktree
-(it infers the branch and main checkout). With <branch>, can be run from the
-main checkout. Fails if the worktree has uncommitted changes.
+Removes the worktree for <branch> and checks <branch> out in the main
+checkout. With no argument, must be run from inside the linked worktree (it
+infers the branch and main checkout). With <branch>, can be run from the main
+checkout — the worktree's location is looked up via `git worktree list`, so it
+does not need to follow any particular path convention. Fails if the worktree
+has uncommitted changes.
 
 Options:
   -h, --help    Show this help and exit
@@ -53,7 +55,6 @@ fi
 
 if [ -n "$1" ]; then
     currentBranch="$1"
-    worktreePath="$HOME/worktrees/$currentBranch"
     mainPath=$(git rev-parse --show-toplevel 2>/dev/null)
 
     if [ -z "$mainPath" ]; then
@@ -61,8 +62,13 @@ if [ -n "$1" ]; then
         exit 1
     fi
 
-    if [ ! -d "$worktreePath" ]; then
-        red "No worktree found at $worktreePath"
+    worktreePath=$(git worktree list --porcelain | awk -v branch="refs/heads/$currentBranch" '
+        /^worktree / { path=$2 }
+        /^branch / { if ($2 == branch) print path }
+    ')
+
+    if [ -z "$worktreePath" ]; then
+        red "No worktree found for branch $currentBranch"
         exit 1
     fi
 

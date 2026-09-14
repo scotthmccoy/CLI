@@ -38,7 +38,8 @@ Move a branch out of the main checkout into its own linked worktree.
 
 Checks out main in the main checkout, then creates a worktree for <branch>
 at ~/worktrees/<branch>. With no argument, uses the currently checked-out
-branch. Cannot be run from inside a linked worktree.
+branch. Cannot be run from inside a linked worktree. Fails if the main
+checkout has uncommitted changes.
 
 Options:
   -h, --help    Show this help and exit
@@ -56,6 +57,11 @@ gc=$(git rev-parse --git-common-dir 2>/dev/null)
 
 if [ -n "$gd" ] && [ "$gd" != "$gc" ]; then
     red "Already in a worktree"
+    exit 1
+fi
+
+if [ -n "$(git status --porcelain)" ]; then
+    red "Uncommitted changes in main checkout — commit or stash them first"
     exit 1
 fi
 
