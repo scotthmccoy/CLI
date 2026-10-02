@@ -69,11 +69,23 @@ if [ -n "$branch" ]; then
     cache_file="$cache_dir/pr_${safe}"
     ttl=60
     now=$(date +%s)
-    mtime=$([ -f "$cache_file" ] && stat -c %Y "$cache_file" 2>/dev/null || echo 0)
+    # mtime: macOS stat is BSD (-f %m); Linux stat is GNU (-c %Y). Try both.
+    mtime=0
+    if [ -f "$cache_file" ]; then
+        mtime=$(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0)
+    fi
     if [ $((now - mtime)) -lt "$ttl" ]; then
         pr_url=$(cat "$cache_file" 2>/dev/null)
     else
-        pr_url=$(timeout 2 gh pr view --json url --jq '.url' 2>/dev/null)
+        # `timeout` is GNU coreutils and absent on stock macOS (brew coreutils ships
+        # it as `gtimeout`). Use whichever exists; otherwise call gh directly.
+        if command -v timeout >/dev/null 2>&1; then
+            pr_url=$(timeout 2 gh pr view --json url --jq '.url' 2>/dev/null)
+        elif command -v gtimeout >/dev/null 2>&1; then
+            pr_url=$(gtimeout 2 gh pr view --json url --jq '.url' 2>/dev/null)
+        else
+            pr_url=$(gh pr view --json url --jq '.url' 2>/dev/null)
+        fi
         printf '%s' "$pr_url" >"$cache_file" 2>/dev/null
     fi
 fi
