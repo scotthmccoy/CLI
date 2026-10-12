@@ -34,10 +34,46 @@ func boolPrompt(_ message: String) -> Bool {
 	return ["y", "Y"].contains(response)
 }
 
+func shellQuote(_ s: String) -> String {
+	return "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+}
+
 func switchBackTo(branch: String) throws {
 	if branch != "main" {
 		print("Switching back to \(branch)")
 		try shell("git checkout \(branch)")
+	}
+}
+
+func printUsage() {
+	print("""
+	Usage: gitcleanup [--careful]
+
+	Delete local branches that have no matching branch on origin (main is never
+	touched). Any worktree checked out on a deleted branch is removed too.
+
+	By default, lists every branch it would delete and asks once to delete them
+	all. If you decline, offers to switch to --careful mode.
+
+	Options:
+	  --careful   Prompt for each branch individually
+	  -h, --help  Show this help
+	""")
+}
+
+// MARK: Args
+var careful = false
+for arg in CommandLine.arguments.dropFirst() {
+	switch arg {
+	case "--careful":
+		careful = true
+	case "-h", "--help":
+		printUsage()
+		exit(0)
+	default:
+		print("Unknown argument: \(arg)\n")
+		printUsage()
+		exit(1)
 	}
 }
 
@@ -124,14 +160,40 @@ do {
 		}
 	}
 
-	for branch in candidates {
-		if boolPrompt("\(green)Delete branch: \(branch)?\(reset) ") {
+	func deleteBranch(_ branch: String) throws {
+		if let worktreePath = worktreePaths[branch] {
+			print("Removing worktree at \(worktreePath)...")
+			try shell("git worktree remove --force \(shellQuote(worktreePath))")
+		}
+		print("Deleting \(branch)...")
+		try shell("git branch -D \(shellQuote(branch))")
+	}
+
+	if !careful {
+		print("\nBranches to delete:")
+		for branch in candidates {
 			if let worktreePath = worktreePaths[branch] {
-				print("Removing worktree at \(worktreePath)...")
-				try shell("git worktree remove --force \(worktreePath.replacingOccurrences(of: " ", with: "\\ "))")
+				print("  \(branch) (worktree: \(worktreePath))")
+			} else {
+				print("  \(branch)")
 			}
-			print("Deleting...")
-			try shell("git branch -D \(branch)")
+		}
+		print("")
+
+		if boolPrompt("\(green)Delete all \(candidates.count) branches?\(reset) [y/N]") {
+			for branch in candidates {
+				try deleteBranch(branch)
+			}
+		} else if boolPrompt("Try --careful mode (prompt per branch)? [y/N]") {
+			careful = true
+		}
+	}
+
+	if careful {
+		for branch in candidates {
+			if boolPrompt("\(green)Delete branch: \(branch)?\(reset) ") {
+				try deleteBranch(branch)
+			}
 		}
 	}
 
