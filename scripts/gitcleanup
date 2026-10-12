@@ -106,6 +106,9 @@ do {
 		try shell("git checkout main")
 	}
 
+	print("Fetching...")
+	try shell("git fetch")
+
 	print("Fetching remote branch list...")
 	let remoteOutput = try shell("git ls-remote --heads origin")
 	let remoteBranches = Set(
@@ -167,6 +170,8 @@ do {
 		}
 	}
 
+	var deletedBranches: Set<String> = []
+
 	func deleteBranch(_ branch: String) throws {
 		if let worktreePath = worktreePaths[branch] {
 			print("Removing worktree at \(worktreePath)...")
@@ -174,6 +179,7 @@ do {
 		}
 		print("Deleting \(branch)...")
 		try shell("git branch -D \(shellQuote(branch))")
+		deletedBranches.insert(branch)
 	}
 
 	if !careful {
@@ -204,7 +210,11 @@ do {
 		}
 	}
 
-	try switchBackTo(branch: currentBranch)
+	if deletedBranches.contains(currentBranch) {
+		print("Deleted starting branch \(currentBranch), staying on main")
+	} else {
+		try switchBackTo(branch: currentBranch)
+	}
 
 	print("\nRemaining branches:")
 	print(try shell("git branch"))
