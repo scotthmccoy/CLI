@@ -23,13 +23,20 @@ func shell(_ command: String) throws -> String {
     return output
 }
 
-func stringPrompt(_ message: String) -> String {
+func stringPrompt(_ message: String) -> String? {
 	print(message + ": ", terminator: "") // The terminator "" keeps the cursor on the same line as the prompt
-	return readLine() ?? ""
+	return readLine()
 }
 
-func boolPrompt(_ message: String) -> Bool {
-	let response = stringPrompt(message)
+func boolPrompt(_ message: String, defaultYes: Bool = false) -> Bool {
+	// nil means stdin hit EOF; never treat that as consent
+	guard let response = stringPrompt(message) else {
+		return false
+	}
+
+	if defaultYes && response.isEmpty {
+		return true
+	}
 
 	return ["y", "Y"].contains(response)
 }
@@ -180,7 +187,7 @@ do {
 		}
 		print("")
 
-		if boolPrompt("\(green)Delete all \(candidates.count) branches?\(reset) [y/N]") {
+		if boolPrompt("\(green)Delete all \(candidates.count) branches?\(reset) [Y/n]", defaultYes: true) {
 			for branch in candidates {
 				try deleteBranch(branch)
 			}
