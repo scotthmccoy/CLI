@@ -4,6 +4,16 @@ import Foundation
 
 
 // MARK: Utility Funcs
+struct ShellError: Error, CustomStringConvertible {
+	let command: String
+	let status: Int32
+	let output: String
+
+	var description: String {
+		"`\(command)` exited with status \(status): \(output.trimmingCharacters(in: .whitespacesAndNewlines))"
+	}
+}
+
 @discardableResult
 func shell(_ command: String) throws -> String {
     let task = Process()
@@ -19,7 +29,12 @@ func shell(_ command: String) throws -> String {
     
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     let output = String(data: data, encoding: .utf8)!
-    
+    task.waitUntilExit()
+
+    guard task.terminationStatus == 0 else {
+        throw ShellError(command: command, status: task.terminationStatus, output: output)
+    }
+
     return output
 }
 
@@ -147,35 +162,63 @@ do {
 
 		try switchBackTo(branch: currentBranch)
 
-		try shell("command -v say &> /dev/null && say done")
+		_ = try? shell("command -v say &> /dev/null && say done")
 		exit(0)
 	}
 
-	// Build a map of branch -> worktree path from `git worktree list --porcelain`
+	// Build maps of branch -> worktree path and branch -> lock reason from `git worktree list --porcelain`
 	var worktreePaths: [String: String] = [:]
+	var worktreeLocks: [String: String] = [:]
 	let worktreeOutput = try shell("git worktree list --porcelain")
 	for group in worktreeOutput.components(separatedBy: "\n\n") {
 		var path = ""
 		var branch = ""
+		var lockReason: String? = nil
 		for line in group.split(whereSeparator: \.isNewline) {
 			let lineStr = String(line)
 			if lineStr.hasPrefix("worktree ") {
 				path = String(lineStr.dropFirst("worktree ".count))
 			} else if lineStr.hasPrefix("branch refs/heads/") {
 				branch = String(lineStr.dropFirst("branch refs/heads/".count))
+			} else if lineStr == "locked" {
+				lockReason = ""
+			} else if lineStr.hasPrefix("locked ") {
+				lockReason = String(lineStr.dropFirst("locked ".count))
 			}
 		}
 		if !path.isEmpty && !branch.isEmpty {
 			worktreePaths[branch] = path
+			worktreeLocks[branch] = lockReason
 		}
+	}
+
+	// A lock like "claude session foo (pid 123 ...)" is stale once that pid has exited
+	func lockingProcessIsAlive(_ reason: String) -> Bool {
+		guard let range = reason.range(of: #"pid (\d+)"#, options: .regularExpression),
+			let pid = Int32(reason[range].dropFirst("pid ".count)) else {
+			return false
+		}
+		return kill(pid, 0) == 0 || errno == EPERM
+	}
+
+	func worktreeDescription(_ branch: String) -> String? {
+		guard let worktreePath = worktreePaths[branch] else { return nil }
+		guard let lockReason = worktreeLocks[branch] else { return "worktree: \(worktreePath)" }
+		let reason = lockReason.isEmpty ? "locked" : "locked: \(lockReason)"
+		return "worktree: \(worktreePath), \(reason)"
 	}
 
 	var deletedBranches: Set<String> = []
 
 	func deleteBranch(_ branch: String) throws {
 		if let worktreePath = worktreePaths[branch] {
+			if let lockReason = worktreeLocks[branch], lockingProcessIsAlive(lockReason) {
+				print("Skipping \(branch): worktree is locked by a running process (\(lockReason))")
+				return
+			}
 			print("Removing worktree at \(worktreePath)...")
-			try shell("git worktree remove --force \(shellQuote(worktreePath))")
+			// Force twice so locked worktrees are removed too
+			try shell("git worktree remove --force --force \(shellQuote(worktreePath))")
 		}
 		print("Deleting \(branch)...")
 		try shell("git branch -D \(shellQuote(branch))")
@@ -185,8 +228,8 @@ do {
 	if !careful {
 		print("\nBranches to delete:")
 		for branch in candidates {
-			if let worktreePath = worktreePaths[branch] {
-				print("  \(branch) (worktree: \(worktreePath))")
+			if let worktree = worktreeDescription(branch) {
+				print("  \(branch) (\(worktree))")
 			} else {
 				print("  \(branch)")
 			}
@@ -220,7 +263,7 @@ do {
 	print(try shell("git branch"))
 
 	print("Done!")
-	try shell("command -v say &> /dev/null && say done")
+	_ = try? shell("command -v say &> /dev/null && say done")
 
 
 } catch {
